@@ -1,7 +1,6 @@
 use clap::Parser;
 use crossterm::QueueableCommand;
 use crossterm::style::{Attribute, Color, SetAttribute};
-use std::io::Write;
 
 #[derive(Parser, Debug)]
 #[command()]
