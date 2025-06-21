@@ -7,13 +7,13 @@ use std::io::Write;
 #[command()]
 struct Args {
     /// If set, will ignore the `NO_COLOR` environment variable
-    #[arg(long)]
+    #[arg(long, short='i')]
     ignore_no_color: bool,
 
     /// If set, will not check if stdout is a TTY
     /// (for instance, it won't be if you're piping the output to another command).
     /// If not set, this program will exit right away if it detects that it's in a tty.
-    #[arg(long)]
+    #[arg(long, short='t')]
     skip_tty_check: bool,
 
     /// List of commands. Everything here is case-insensitive.
