@@ -6,13 +6,13 @@ use crossterm::style::{Attribute, Color, SetAttribute};
 #[command()]
 struct Args {
     /// If set, will ignore the `NO_COLOR` environment variable
-    #[arg(long, short='i')]
+    #[arg(long, short = 'i')]
     ignore_no_color: bool,
 
     /// If set, will not check if stdout is a TTY
     /// (for instance, it won't be if you're piping the output to another command).
     /// If not set, this program will exit right away if it detects that it's in a tty.
-    #[arg(long, short='t')]
+    #[arg(long, short = 't')]
     skip_tty_check: bool,
 
     /// List of commands. Everything here is case-insensitive.
@@ -70,6 +70,8 @@ struct Args {
     /// overline/overlined
     ///
     /// nooverline/nooverlined/notoverline/notoverlined
+    ///
+    /// <name> Same as fg=<name>
     ///
     /// fg=<u8> Set the foreground color to u8 where u8 is an unsigned 8 bit integer representing an ANSI color code.
     /// A table with a list of the numbers can be found at https://web.archive.org/web/20250529201746/https://www.ditig.com/256-colors-cheat-sheet
@@ -149,12 +151,16 @@ fn main() {
         .map(|s| s.to_lowercase())
         .collect();
     for command in commands {
-        if command.starts_with("fg") {
+        if let Ok(color) = parse_color(&command, true) {
+            stdout
+                .queue(crossterm::style::SetForegroundColor(color))
+                .unwrap();
+        } else if command.starts_with("fg") {
             if !command.starts_with("fg=") {
                 panic!("= expected after fg")
             }
             let fg_color = command.split_once('=').expect("Should not fail since we just verified there's an =. If you're seeing this, something has gone quite wrong.").1;
-            let fg_color = parse_color(fg_color);
+            let fg_color = parse_color(fg_color, false).unwrap();
             stdout
                 .queue(crossterm::style::SetForegroundColor(fg_color))
                 .unwrap();
@@ -163,7 +169,7 @@ fn main() {
                 panic!("= expected after bg")
             }
             let bg_color = command.split_once('=').expect("Should not fail since we just verified there's an =. If you're seeing this, something has gone quite wrong.").1;
-            let bg_color = parse_color(bg_color);
+            let bg_color = parse_color(bg_color, false).unwrap();
             stdout
                 .queue(crossterm::style::SetBackgroundColor(bg_color))
                 .unwrap();
@@ -267,8 +273,8 @@ fn main() {
     }
 }
 
-fn parse_color(color: &str) -> Color {
-    if color.contains(',') {
+fn parse_color(color: &str, name_only: bool) -> Result<Color, String> {
+    if !name_only && color.contains(',') {
         let comma_count = color.chars().filter(|c| *c == ',').count();
         if comma_count != 2 {
             let (only, was_were) = if comma_count == 1 {
@@ -282,42 +288,42 @@ fn parse_color(color: &str) -> Color {
         }
         let (r, gb) = color.split_once(',').unwrap();
         let (g, b) = gb.split_once(',').unwrap();
-        let r: u8 = r.parse().unwrap_or_else(|_| {
-            panic!("Failed to parse {r} as a number between 0 and 255 (both inclusive)")
-        });
-        let g: u8 = g.parse().unwrap_or_else(|_| {
-            panic!("Failed to parse {g} as a number between 0 and 255 (both inclusive)")
-        });
-        let b: u8 = b.parse().unwrap_or_else(|_| {
-            panic!("Failed to parse {b} as a number between 0 and 255 (both inclusive)")
-        });
-        return crossterm::style::Color::Rgb { r, g, b };
+        let r: u8 = r.parse().map_err(|_| {
+            format!("Failed to parse {r} as a number between 0 and 255 (both inclusive)")
+        })?;
+        let g: u8 = g.parse().map_err(|_| {
+            format!("Failed to parse {g} as a number between 0 and 255 (both inclusive)")
+        })?;
+        let b: u8 = b.parse().map_err(|_| {
+            format!("Failed to parse {b} as a number between 0 and 255 (both inclusive)")
+        })?;
+        return Ok(crossterm::style::Color::Rgb { r, g, b });
     }
-    if color.chars().all(|c| c.is_ascii_digit()) {
-        let ansi_value: u8 = color.parse().unwrap_or_else(|_| {
-            panic!("Color number {color} is too big. Must be at most 255 (and at least 0)")
-        });
-        return Color::AnsiValue(ansi_value);
+    if !name_only && color.chars().all(|c| c.is_ascii_digit()) {
+        let ansi_value: u8 = color.parse().map_err(|_| {
+            format!("Color number {color} is too big. Must be at most 255 (and at least 0)")
+        })?;
+        return Ok(Color::AnsiValue(ansi_value));
     }
     let color = color.replace("gray", "grey");
     match color.as_str() {
-        "black" => Color::Black,                                        // 0
-        "red" | "maroon" => Color::DarkRed,                             // 1
-        "green" | "darklime" => Color::DarkGreen,                       // 2
-        "yellow" | "olive" => Color::DarkYellow,                        // 3
-        "blue" | "navy" => Color::DarkBlue,                             // 4
-        "magenta" | "purple" | "darkfuchsia" => Color::DarkMagenta,     // 5
-        "cyan" | "teal" | "darkaqua" => Color::DarkCyan,                // 6
-        "white" | "silver" => Color::Grey,                              // 7
-        "brightblack" | "grey" | "gray" => Color::DarkGrey,             // 8
-        "brightred" | "brightmaroon" => Color::Red,                     // 9
-        "brightgreen" | "lime" => Color::Green,                         // 10
-        "brightyellow" | "brightolive" => Color::Yellow,                // 11
-        "brightblue" | "brightnavy" => Color::Blue,                     // 12
-        "brightmagenta" | "brightpurple" | "fuchsia" => Color::Magenta, // 13
-        "brightcyan" | "brightteal" | "aqua" => Color::Cyan,            // 14
-        "brightwhite" => Color::White,                                  // 15
+        "black" => Ok(Color::Black),                                        // 0
+        "red" | "maroon" => Ok(Color::DarkRed),                             // 1
+        "green" | "darklime" => Ok(Color::DarkGreen),                       // 2
+        "yellow" | "olive" => Ok(Color::DarkYellow),                        // 3
+        "blue" | "navy" => Ok(Color::DarkBlue),                             // 4
+        "magenta" | "purple" | "darkfuchsia" => Ok(Color::DarkMagenta),     // 5
+        "cyan" | "teal" | "darkaqua" => Ok(Color::DarkCyan),                // 6
+        "white" | "silver" => Ok(Color::Grey),                              // 7
+        "brightblack" | "grey" | "gray" => Ok(Color::DarkGrey),             // 8
+        "brightred" | "brightmaroon" => Ok(Color::Red),                     // 9
+        "brightgreen" | "lime" => Ok(Color::Green),                         // 10
+        "brightyellow" | "brightolive" => Ok(Color::Yellow),                // 11
+        "brightblue" | "brightnavy" => Ok(Color::Blue),                     // 12
+        "brightmagenta" | "brightpurple" | "fuchsia" => Ok(Color::Magenta), // 13
+        "brightcyan" | "brightteal" | "aqua" => Ok(Color::Cyan),            // 14
+        "brightwhite" => Ok(Color::White),                                  // 15
 
-        _ => panic!("Unknown color: {color}"),
+        _ => Err(format!("Unknown color: {color}")),
     }
 }
