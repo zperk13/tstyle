@@ -71,14 +71,22 @@ struct Args {
     ///
     /// nooverline/nooverlined/notoverline/notoverlined
     ///
-    /// <name> Same as fg=<name>
+    /// <name>      Same as fg=<name>
+    /// <u8>        Same as fg=<u8>
+    /// <r>,<g>,<b> Same as fg=<r>,<g>,<b>
+    /// #RRGGBB     Same as fg=#RRGGBB
+    ///
+    /// fg=<name> Set the foreground color to the named color
+    /// (see later in the help for color names)
     ///
     /// fg=<u8> Set the foreground color to u8 where u8 is an unsigned 8 bit integer representing an ANSI color code.
     /// A table with a list of the numbers can be found at https://web.archive.org/web/20250529201746/https://www.ditig.com/256-colors-cheat-sheet
     ///
     /// fg=<r>,<g>,<b> Set the foreground color to an RGB value
     ///
-    /// fg=<name> Set the foreground color to the named color
+    /// fg=#RRGGBB Set the foreground color to an RGB hexadecimal value
+    ///
+    /// bg=<name> Set the background color to the named color.
     /// (see later in the help for color names)
     ///
     /// bg=<u8> Set the background color to u8 where u8 is an unsigned 8 bit integer representing an ANSI color code.
@@ -86,10 +94,9 @@ struct Args {
     ///
     /// bg=<r>,<g>,<b> Set the background color to an RGB value
     ///
-    /// bg=<name> Set the background color to the named color.
-    /// (see later in the help for color names)
+    /// bg=#RRGBB Set the background color to an RGB hexadecimal value
     ///
-    /// For color names, like everyting else in commands, case doesn't matter. You have your standard colors, sometimes also called "dark" color:
+    /// For color names, like everything else in commands, case doesn't matter. You have your standard colors, sometimes also called "dark" color:
     ///
     /// black
     /// red
@@ -151,7 +158,7 @@ fn main() {
         .map(|s| s.to_lowercase())
         .collect();
     for command in commands {
-        if let Ok(color) = parse_color(&command, true) {
+        if let Ok(color) = parse_color(&command) {
             stdout
                 .queue(crossterm::style::SetForegroundColor(color))
                 .unwrap();
@@ -160,7 +167,7 @@ fn main() {
                 panic!("= expected after fg")
             }
             let fg_color = command.split_once('=').expect("Should not fail since we just verified there's an =. If you're seeing this, something has gone quite wrong.").1;
-            let fg_color = parse_color(fg_color, false).unwrap();
+            let fg_color = parse_color(fg_color).unwrap();
             stdout
                 .queue(crossterm::style::SetForegroundColor(fg_color))
                 .unwrap();
@@ -169,7 +176,7 @@ fn main() {
                 panic!("= expected after bg")
             }
             let bg_color = command.split_once('=').expect("Should not fail since we just verified there's an =. If you're seeing this, something has gone quite wrong.").1;
-            let bg_color = parse_color(bg_color, false).unwrap();
+            let bg_color = parse_color(bg_color).unwrap();
             stdout
                 .queue(crossterm::style::SetBackgroundColor(bg_color))
                 .unwrap();
@@ -273,8 +280,8 @@ fn main() {
     }
 }
 
-fn parse_color(color: &str, name_only: bool) -> Result<Color, String> {
-    if !name_only && color.contains(',') {
+fn parse_color(color: &str) -> Result<Color, String> {
+    if color.contains(',') {
         let comma_count = color.chars().filter(|c| *c == ',').count();
         if comma_count != 2 {
             let (only, was_were) = if comma_count == 1 {
@@ -298,15 +305,24 @@ fn parse_color(color: &str, name_only: bool) -> Result<Color, String> {
             format!("Failed to parse {b} as a number between 0 and 255 (both inclusive)")
         })?;
         return Ok(crossterm::style::Color::Rgb { r, g, b });
-    }
-    if !name_only && color.chars().all(|c| c.is_ascii_digit()) {
+    } else if color.chars().all(|c| c.is_ascii_digit()) {
         let ansi_value: u8 = color.parse().map_err(|_| {
             format!("Color number {color} is too big. Must be at most 255 (and at least 0)")
         })?;
         return Ok(Color::AnsiValue(ansi_value));
+    } else if color.starts_with('#')
+        && color.len() == 7
+        && !color
+            .chars()
+            .skip(1)
+            .any(|c| !matches!(c, '0'..='9' | 'a'..='f' | 'A'..='F'))
+    {
+        let r = u8::from_str_radix(&color[1..=2], 16).unwrap();
+        let g = u8::from_str_radix(&color[3..=4], 16).unwrap();
+        let b = u8::from_str_radix(&color[5..=6], 16).unwrap();
+        return Ok(Color::Rgb { r, g, b });
     }
-    let color = color.replace("gray", "grey");
-    match color.as_str() {
+    match color {
         "black" => Ok(Color::Black),                                        // 0
         "red" | "maroon" => Ok(Color::DarkRed),                             // 1
         "green" | "darklime" => Ok(Color::DarkGreen),                       // 2
