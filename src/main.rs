@@ -72,8 +72,11 @@ struct Args {
     /// nooverline/nooverlined/notoverline/notoverlined
     ///
     /// <name>      Same as fg=<name>
+    ///
     /// <u8>        Same as fg=<u8>
+    ///
     /// <r>,<g>,<b> Same as fg=<r>,<g>,<b>
+    ///
     /// #RRGGBB     Same as fg=#RRGGBB
     ///
     /// fg=<name> Set the foreground color to the named color
