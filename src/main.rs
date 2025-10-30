@@ -33,7 +33,7 @@ struct Args {
     ///
     /// noitalic/notitalic
     ///
-    /// normalintensity (no bold and no italic)
+    /// normalintensity (no bold and sometimes no italic)
     ///
     /// underline/underlined
     ///
