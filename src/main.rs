@@ -25,13 +25,15 @@ struct Args {
     ///
     /// bold
     ///
-    /// nobold/notbold
+    /// nobold/notbold Inconsistent, prefer normalintensity
     ///
     /// dim/faint
     ///
     /// italic Not widely supported, sometimes treated as inverse or blink
     ///
     /// noitalic/notitalic
+    ///
+    /// normalintensity (no bold and no italic)
     ///
     /// underline/underlined
     ///
@@ -118,7 +120,7 @@ struct Args {
     /// magenta
     ///
     /// cyan
-    /// 
+    ///
     /// white
     ///
     ///
@@ -128,7 +130,7 @@ struct Args {
     /// brightblack
     ///
     /// brightred
-    /// 
+    ///
     /// brightgreen
     ///
     /// brightyellow
@@ -217,6 +219,10 @@ fn main() {
             stdout.queue(SetAttribute(Attribute::Italic)).unwrap();
         } else if command == "noitalic" || command == "notitalic" {
             stdout.queue(SetAttribute(Attribute::NoItalic)).unwrap();
+        } else if command == "normalintensity" {
+            stdout
+                .queue(SetAttribute(Attribute::NormalIntensity))
+                .unwrap();
         } else if command == "underline" || command == "underlined" {
             stdout.queue(SetAttribute(Attribute::Underlined)).unwrap();
         } else if command == "doubleunderline" || command == "doubleunderlined" {
