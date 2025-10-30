@@ -37,6 +37,8 @@ struct Args {
     ///
     /// doubleunderline/doubleunderlined Sometimes disables bold intensity instead on some terminals
     ///
+    /// undercurl/undercurled
+    ///
     /// underdot/underdotted
     ///
     /// underdash/underdahsed
@@ -221,6 +223,8 @@ fn main() {
             stdout
                 .queue(SetAttribute(Attribute::DoubleUnderlined))
                 .unwrap();
+        } else if command == "undercurl" || command == "undercurled" {
+            stdout.queue(SetAttribute(Attribute::Undercurled)).unwrap();
         } else if command == "underdot" || command == "underdotted" {
             stdout.queue(SetAttribute(Attribute::Underdotted)).unwrap();
         } else if command == "underdash" || command == "underdashed" {
