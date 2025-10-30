@@ -99,27 +99,47 @@ struct Args {
     ///
     /// bg=#RRGBB Set the background color to an RGB hexadecimal value
     ///
+    ///
+    ///
     /// For color names, like everything else in commands, case doesn't matter. You have your standard colors, sometimes also called "dark" color:
     ///
     /// black
+    ///
     /// red
+    ///
     /// green
+    ///
     /// yellow
+    ///
     /// blue
+    ///
     /// magenta
+    ///
     /// cyan
+    /// 
     /// white
+    ///
+    ///
     ///
     /// And then for each of those, a "bright" variant:
     ///
     /// brightblack
+    ///
     /// brightred
+    /// 
     /// brightgreen
+    ///
     /// brightyellow
+    ///
     /// brightblue
+    ///
     /// brightmagenta
+    ///
     /// brightcyan
+    ///
     /// brightwhite
+    ///
+    ///
     ///
     /// Along with a few convenience aliases:
     ///
